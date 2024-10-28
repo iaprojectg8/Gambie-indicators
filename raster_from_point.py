@@ -1,18 +1,4 @@
-import rasterio
-import numpy as np
-from rasterio.transform import from_origin
-import pandas as pd
-import geopandas as gpd
-import rasterio
-import matplotlib.pyplot as plt
-from scipy.interpolate import griddata
-from rasterio.features import geometry_mask
-from shapely.geometry import Polygon, Point, mapping
-import contextily as ctx
-from mpl_interactions import interactive_plot
-from ipywidgets import interactive
-from matplotlib.widgets import Slider
-import plotly.graph_objects as go
+from utils.imports import *
 
 
 # --- Matplotlib functions control ---
