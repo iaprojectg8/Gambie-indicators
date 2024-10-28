@@ -3,3 +3,4 @@ __pycache__
 Extended_Gambie_dataset/*
 Extended_Gambie_graphs/*
 Gambie_dataset/*
+*.tif

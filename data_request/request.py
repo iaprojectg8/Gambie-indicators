@@ -112,7 +112,7 @@ def save_daily_dataset(daily_data, dataset_folder, filename_base, index, lat, lo
 
 
 # --- Main function to get openmeteo data from Gambia ---
-def request_all_data_gambie(coordinates_csv, dataset_folder):
+def request_all_data_gambia(coordinates_csv, dataset_folder):
     """
     Orchestrates the process of requesting and saving daily weather data for multiple coordinates.
     
@@ -120,6 +120,18 @@ def request_all_data_gambie(coordinates_csv, dataset_folder):
         coordinates_csv (str): Path to the CSV file containing coordinates.
         dataset_folder (str): Path to the folder where the results will be saved.
     """
+    try:
+        with open(coordinates_csv, 'r') as file:
+            # Process the file as needed
+            pass
+    except FileNotFoundError:
+        print("The coordinates file has not been found.")
+
+    if os.path.isdir(dataset_folder):
+        print("Dataset folder already exist")
+    else:
+        os.makedirs(dataset_folder)
+        print("Dataset folder created")
     filename_base = "cmip6_era5_data_daily"
     url ="https://climate-api.open-meteo.com/v1/climate"
     df = pd.read_csv(coordinates_csv)
@@ -146,4 +158,4 @@ def request_all_data_gambie(coordinates_csv, dataset_folder):
         # Time sleep here to not causing trouble reaching the request limit
         time.sleep(2)
 
-request_all_data_gambie(COORDINATES_FILE, DATASET_FOLDER)
+request_all_data_gambia(COORDINATES_FILE, DATASET_FOLDER)

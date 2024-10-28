@@ -2,146 +2,23 @@ from utils.imports import *
 from utils.variables import *
 
 
-# --- Matplotlib functions control ---
-
-global pan_start
-pan_start = None
-
-def pan_start_handler(event):
-    """Record the starting point for panning."""
-    global pan_start, xlim_start, ylim_start
-    if event.button == 1:  # Left mouse button starts the pan
-        pan_start = (event.xdata, event.ydata)
-        ax = plt.gca()
-        xlim_start = ax.get_xlim()
-        ylim_start = ax.get_ylim()
-    else: 
-        pan_start = None
-
-def pan_move_handler(event):
-    """Handle mouse movement while panning."""
-    global pan_start, xlim_start, ylim_start
-    if pan_start is None or event.xdata is None or event.ydata is None:
-        return  # Ignore if no starting point or mouse is out of bounds
-
-    # Calculate the offset from the starting point
-    dx = pan_start[0] - event.xdata
-    dy = pan_start[1] - event.ydata
-
-    # Update limits based on the movement
-    ax = plt.gca()
-    ax.set_xlim([xlim_start[0] + dx, xlim_start[1] + dx])
-    ax.set_ylim([ylim_start[0] + dy, ylim_start[1] + dy])
-
-    
-
-def pan_end_handler(event):
-    """End the panning action."""
-    global pan_start
-    if event.button == 1:  # Left mouse button
-        pan_start = None  # Reset the pan start to stop panning
-    plt.draw()  # Redraw the plot
-
-def zoom(event):
-    # Get the current x and y limits
-    ax = plt.gca()
-    xlim = ax.get_xlim()
-    ylim = ax.get_ylim()
-
-    # Define the zoom factor
-    zoom_factor = 1.2
-
-    # Zoom in
-    if event.button == 'up':
-        scale_factor = 1 / zoom_factor
-    # Zoom out
-    elif event.button == 'down':
-        scale_factor = zoom_factor
-    else:
-        return
-
-    # Compute the new limits based on the zoom factor
-    ax.set_xlim([event.xdata - (event.xdata - xlim[0]) * scale_factor,
-                 event.xdata + (xlim[1] - event.xdata) * scale_factor])
-    ax.set_ylim([event.ydata - (event.ydata - ylim[0]) * scale_factor,
-                 event.ydata + (ylim[1] - event.ydata) * scale_factor])
-
-    # Redraw the plot with new limits
-    plt.draw()
-
-
-
-# --- Others functions that have been tested ---
-
-
-def create_sparse_raster(gdf, score_column, resolution, output_tif='sparse_raster.tif'):
-    # Get the boundaries of the points
-    min_lon, min_lat, max_lon, max_lat = gdf.total_bounds
-    print(gdf.total_bounds)
-
-    # Calculate the width and height of the raster based on resolution
-    lat = np.unique(gdf["LAT"].values)
-    empty_lat = np.arange(min_lat, max_lat,0.01)
-    print(type(lat), type(empty_lat))
-    lat = np.sort(np.concatenate((lat, empty_lat)))
-    print(lat)
-    lon = np.unique(gdf["LON"].values)
-    # points = np.array([list((row["LON"], row["LAT"])) for index, row in gdf.iterrows()])
-
-    score_dict=dict()
-    for index, row in gdf.iterrows():
-        score_dict[f"{row["LAT"]},{row["LON"]}"] = row[score_column]
-    
-    print(score_dict)
-
-    lat_resolution = np.mean(pd.DataFrame(lat).diff())
-    lon_resolution = np.mean(pd.DataFrame(lon).diff())
-   
-
-    grid = np.empty((lat.shape[0], lon.shape[0]))
-    for idx_lat, la in enumerate(lat):
-        for idx_lon, lo in enumerate(lon):
-            key = f"{la},{lo}"
-            if key in score_dict:
-                grid[idx_lat][idx_lon]=score_dict[key]
-            else:
-                grid[idx_lat][idx_lon]=np.nan
-
-    grid_score = grid[::-1]
-    pd.DataFrame(grid_score).to_csv("test1.csv")
-    
-    print(grid_score.shape)
-
-
-    transform = from_origin(min_lon, max_lat, lon_resolution, lat_resolution)
-
-
-    with rasterio.open(
-        output_tif,
-        'w',
-        driver='GTiff',
-        height=grid_score.shape[0],
-        width=grid_score.shape[1],
-        count=1,
-        dtype=grid_score.dtype,
-        crs='EPSG:4326',
-        transform=transform,
-    ) as dst:
-        dst.write(grid_score, 1)
-
-    print(f"Sparse raster saved as {output_tif}")
-
-
-def plot_data(gdf, score_column):
-    scatter = plt.scatter(gdf["LON"], gdf["LAT"], c=gdf[score_column], cmap="RdYlGn_r")
-    plt.gca().set_aspect('equal', adjustable='box')
-    plt.colorbar(scatter, label='score_column')
-    plt.show()
-
-#########################################################################################################################################
 # --- Main function that are used in the main script ---
 
 def apply_mask(masked, grid_score, shape_gdf, min_lon, max_lat, resolution):
+    """
+    Applies a mask to the grid score data based on the specified shape geometry.
+    
+    Args:
+    - masked (bool): Flag indicating whether to apply the mask.
+    - grid_score (ndarray): Array of interpolated scores.
+    - shape_gdf (GeoDataFrame): GeoDataFrame containing the shape geometry.
+    - min_lon (float): Minimum longitude of the grid.
+    - max_lat (float): Maximum latitude of the grid.
+    - resolution (float): Grid cell resolution.
+    
+    Returns:
+    - ndarray: Masked grid score array with NaNs outside the shape geometry.
+    """
     grid_score = grid_score[::-1]
     if masked:
         # Create the mask
@@ -156,7 +33,15 @@ def apply_mask(masked, grid_score, shape_gdf, min_lon, max_lat, resolution):
 
 
 def get_geodataframe(filename_path):
-
+    """
+    Loads data from a CSV file and creates a GeoDataFrame with point geometries.
+    
+    Args:
+    - filename_path (str): Path to the CSV file containing longitude and latitude columns.
+    
+    Returns:
+    - GeoDataFrame: A GeoDataFrame with points generated from longitude and latitude data.
+    """
     df = pd.read_csv(filename_path)
     gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df["LON"], df["LAT"]))
     gdf.set_crs(epsg=4326, inplace=True)
@@ -164,6 +49,16 @@ def get_geodataframe(filename_path):
     return gdf
 
 def get_gdf_values(gdf, score_column):
+    """
+    Extracts latitude, longitude, and score values from a GeoDataFrame.
+    
+    Args:
+    - gdf (GeoDataFrame): The GeoDataFrame containing latitude, longitude, and score data.
+    - score_column (str): The column name for score data.
+    
+    Returns:
+    - tuple: Arrays of latitude, longitude, and score values.
+    """
     lat = gdf["LAT"].values
     lon = gdf["LON"].values
     score = gdf[score_column].values  # Replace with the actual column name
@@ -172,7 +67,19 @@ def get_gdf_values(gdf, score_column):
 
 
 def create_grid(min_lon, min_lat, max_lon, max_lat, resolution):
+    """
+    Creates a grid of longitude and latitude values for raster data.
     
+    Args:
+    - min_lon (float): Minimum longitude of the grid.
+    - min_lat (float): Minimum latitude of the grid.
+    - max_lon (float): Maximum longitude of the grid.
+    - max_lat (float): Maximum latitude of the grid.
+    - resolution (float): Resolution of each grid cell.
+    
+    Returns:
+    - tuple: Meshgrid arrays of longitude and latitude values.
+    """
     # Create a grid for the raster
     grid_lon = np.arange(min_lon, max_lon, resolution)
     grid_lat = np.arange(min_lat, max_lat, resolution)
@@ -181,11 +88,23 @@ def create_grid(min_lon, min_lat, max_lon, max_lat, resolution):
 
 
 def create_raster_from_df(gdf, score_column, shapefile_path,masked, resolution):
-
+    """
+    Generates a raster from a GeoDataFrame and applies an optional mask.
+    
+    Args:
+    - gdf (GeoDataFrame): The input data containing latitude, longitude, and score columns.
+    - score_column (str): The column name of the score data.
+    - shapefile_path (str): Path to the shapefile for masking the raster.
+    - masked (bool): Flag indicating whether to apply the mask.
+    - resolution (float): Grid cell resolution.
+    
+    Returns:
+    - tuple: Masked raster grid score and affine transform for spatial alignment.
+    """
     # Read the shapefile
     shape_gdf = gpd.read_file(shapefile_path)
     
-    # Get Latitude, Longitude and Score
+    # Get Latitude, Longitude and Scores
     min_lon, min_lat, max_lon, max_lat = gdf.total_bounds
     lat, lon, score = get_gdf_values(gdf,score_column)
     grid_lon, grid_lat = create_grid(min_lon, min_lat, max_lon, max_lat, resolution)
@@ -201,92 +120,15 @@ def create_raster_from_df(gdf, score_column, shapefile_path,masked, resolution):
     return grid_score, transform
 
 
-def write_tif(output_path, grid_score, transform):
-    # Create the raster file
-    with rasterio.open(
-        output_path,
-        'w',
-        driver='GTiff',
-        height=grid_score.shape[0],
-        width=grid_score.shape[1],
-        count=1,
-        dtype=grid_score.dtype,
-        crs='EPSG:4326',
-        transform=transform,
-    ) as dst:
-        dst.write(grid_score, 1)
-
-
-
-def plot_tif_score(grid_score, gdf, shapefile_path):
-    
-    # Variable init
-    min_lon, min_lat, max_lon, max_lat = gdf.total_bounds
-    shape_gdf = gpd.read_file(shapefile_path)
-
-    # Create figure and interaction on it
-    fig, _ = plt.subplots()
-    fig.canvas.mpl_connect('scroll_event', zoom)
-    fig.canvas.mpl_connect('button_press_event', pan_start_handler) 
-    fig.canvas.mpl_connect('motion_notify_event', pan_move_handler)  
-    fig.canvas.mpl_connect('button_release_event', pan_end_handler)  
-
-    # Plot the shape with a black border, add open street map basemap and the tif 
-    shape_gdf.boundary.plot(ax=plt.gca(), color='black', linewidth=1)
-    ctx.add_basemap(plt.gca(), crs="EPSG:4326", source=ctx.providers.OpenStreetMap.Mapnik)
-    plt.imshow(grid_score, extent=(min_lon, max_lon, min_lat, max_lat), cmap='RdYlGn_r')
-
-    # Add titles
-    plt.xlabel('Longitude')
-    plt.ylabel('Latitude')
-    plt.title('Raster with Shape Overlay')
-
-    plt.show()
-
-
-def plot_tif(output_path, gdf, shapefile_path):
-    
-    with rasterio.open(output_path) as src:
-        grid_score = src.read(1)
-    # Variable init
-    min_lon, min_lat, max_lon, max_lat = gdf.total_bounds
-    shape_gdf = gpd.read_file(shapefile_path)
-
-    # Create figure and interaction on it
-    fig, _ = plt.subplots()
-    fig.canvas.mpl_connect('scroll_event', zoom)
-    fig.canvas.mpl_connect('button_press_event', pan_start_handler) 
-    fig.canvas.mpl_connect('motion_notify_event', pan_move_handler)  
-    fig.canvas.mpl_connect('button_release_event', pan_end_handler)  
-
-    # Plot the shape with a black border, add open street map basemap and the tif 
-    shape_gdf.boundary.plot(ax=plt.gca(), color='black', linewidth=1)
-    ctx.add_basemap(plt.gca(), crs="EPSG:4326", source=ctx.providers.OpenStreetMap.Mapnik)
-    plt.imshow(grid_score, extent=(min_lon, max_lon, min_lat, max_lat), cmap='RdYlGn_r')
-
-    # Add titles
-    plt.xlabel('Longitude')
-    plt.ylabel('Latitude')
-    plt.title('Raster with Shape Overlay')
-
-    plt.show()
-
-
-
-def main():
-
-    filename_path = "extended_final.csv"
-    gdf = get_geodataframe(filename_path)
-    shapefile_path = "AOI_Gambia 1/AOI_Gambia.shp"
-    score_column = "temperature_score_2030_2050"
-    output_path = "score_raster.tif"
-    grid_score, transform = create_raster_from_df(gdf=gdf,score_column=score_column ,shapefile_path=shapefile_path,
-                                        masked=1, output_path=output_path, resolution=0.001)
-    write_tif(output_path, grid_score, transform)
-    plot_tif_score(grid_score=grid_score, gdf=gdf, shapefile_path=shapefile_path)
-
-
 def write_multiband_tif(output_path, grid_score_list, transform_list):
+    """
+    Writes multiple bands of raster data to a GeoTIFF file.
+    
+    Args:
+    - output_path (str): The path where the output GeoTIFF will be saved.
+    - grid_score_list (list): A list of 2D arrays representing the raster data for each band.
+    - transform_list (list): A list of affine transformations for each raster band.
+    """
     with rasterio.open(
         output_path,
         'w',
@@ -346,13 +188,15 @@ def plot_tif_multiband(output_path, gdf, shapefile_path, score_type, score_colum
 
     # Update function
     def update(val):
-        frame = int(slider.val)  # Get the frame number from the slider
+        frame = int(slider.val)
         
-        img.set_array(rasters[frame])  # Update the image
+        # Update the image
+        img.set_array(rasters[frame])  
         
         date = score_columns[frame].split("_")[-2:]
         start = date[0]
         end = date[1]
+        # Update the title
         ax.set_title(f"{score_type.capitalize()} {start}-{end}")
         fig.canvas.draw_idle()  # Refresh the figure
 
@@ -361,133 +205,15 @@ def plot_tif_multiband(output_path, gdf, shapefile_path, score_type, score_colum
 
     plt.show()
 
-
-def plot_tif_multiband_plotly(output_path, gdf, shapefile_path, score_type, score_columns):
-    # Load the rasters and determine min/max values across bands
-    rasters = []
-    global_min, global_max = np.inf, -np.inf
-    with rasterio.open(output_path) as src:
-        for i in range(len(score_columns)):
-            data = src.read(i + 1)
-            rasters.append(data)
-            global_min = min(global_min, np.nanmin(data))
-            global_max = max(global_max, np.nanmax(data))
-
-    # Initialize coordinates from bounding box
-    min_lon, min_lat, max_lon, max_lat = gdf.total_bounds
-
-    # Read shapefile and dissolve all geometries into one
-    shape_gdf = gpd.read_file(shapefile_path).dissolve()
-
-    # Extract boundary coordinates for the dissolved geometry
-    boundaries = []
-    geometry = shape_gdf.geometry.iloc[0]
-    if geometry.geom_type == "Polygon":
-        lon, lat = geometry.exterior.xy
-        boundaries.append((list(lon), list(lat)))  # Convert to list
-    elif geometry.geom_type == "MultiPolygon":
-        for polygon in geometry.geoms:  # Correctly iterate over each polygon
-            lon, lat = polygon.exterior.xy
-            boundaries.append((list(lon), list(lat)))  # Convert to list
-
-    # Create frames for each raster epoch
-    frames = []
-    for i, raster in enumerate(rasters):
-        date = score_columns[i].split("_")[-2:]
-        start, end = date[0], date[1]
-        title = f"{score_type.capitalize()} {start}-{end}"
-
-        # Initialize data for the frame
-        frame_data = [
-            go.Heatmap(
-                z=raster,
-                x=np.linspace(min_lon, max_lon, raster.shape[1]),
-                y=np.linspace(min_lat, max_lat, raster.shape[0]),
-                zmin=global_min, zmax=global_max,
-                colorscale="RdYlGn_r",
-                colorbar=dict(title="Score Value")
-            )
-        ]
-
-        frames.append(go.Frame(data=frame_data, name=title))
-
-    # Set up the initial heatmap layout
-    fig = go.Figure(
-        data=frames[0].data,
-        layout=go.Layout(
-            title=frames[0].name,
-            xaxis=dict(title="Longitude"),
-            yaxis=dict(title="Latitude"),
-            updatemenus=[
-                dict(
-                    buttons=[
-                        dict(
-                            label=frame.name,
-                            method="animate",
-                            args=[[frame.name], dict(mode="immediate", frame=dict(duration=0), transition=dict(duration=0))]
-                        ) for frame in frames
-                    ],
-                    direction="down",
-                    pad={"r": 10, "t": 10},
-                    showactive=True,
-                )
-            ],
-            sliders=[{
-                'active': 0,
-                'yanchor': 'top',
-                'xanchor': 'left',
-                'currentvalue': {
-                    'prefix': 'Epoch:',
-                    'visible': True,
-                    'xanchor': 'right',
-                },
-                'transition': {'duration': 300},
-                'pad': {'b': 10},
-                'len': 0.9,
-                'x': 0.1,
-                'y': -0.1,
-                'steps': []  # Ensure steps is initialized as a list
-            }]
-        ),
-        frames=frames
-    )
-
-    # Debug: Check the initial structure of the fig object
-    # print("Initial fig layout:", fig.layout)
-
-    # Create steps for the slider
-    for idx, frame in enumerate(frames):
-        step = {
-            'label': frame.name,
-            'method': 'animate',
-            'args': [
-                [frame.name],
-                {
-                    'mode': 'immediate',
-                    'frame': {'duration': 300, 'redraw': True},
-                    'transition': {'duration': 300},
-                }
-            ]
-        }
-        # Append each step to the slider's steps
-        print(fig.layout.sliders)
-        print(fig.layout.sliders[0])
-        print(fig.layout.sliders[0]["steps"])
-        if idx ==0 : 
-            print(fig.layout.sliders[0]['steps']    )
-            fig.layout.sliders[0]['steps'] = list()
-            print(type(fig.layout.sliders[0]['steps']))
-            fig.layout.sliders[0]['steps'].append(step)
-        else :
-            fig.layout.sliders[0]['steps'].append(step)
-
-    # Debug: Check the structure after adding steps
-    print("Final fig layout:", fig.layout)
-
-    fig.show()
-
-
 def main_epoch_loop():
+    """
+    Main loop to execute the processing of the geospatial data and visualize the results.
+    
+    This function:
+    - Prompts the user for input to select the score type and masking options.
+    - Reads the geospatial data and creates rasters for each score column.
+    - Writes the raster data to a multi-band TIFF file and plots the result.
+    """
     filename_path = FINAL_CSV_PATH
     gdf = get_geodataframe(filename_path)
     shapefile_path = SHAPE_FILE_PATH

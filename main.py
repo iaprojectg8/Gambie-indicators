@@ -48,6 +48,10 @@ def calculate_score_for_all_points():
     Function to calculate and plot scores for all points in a dataset (multiple locations).
     """
     df = pd.DataFrame()
+    if os.path.isdir(GRAPH_FOLDER):
+        print("The graph folder already exists")
+    else :
+        os.makedirs(GRAPH_FOLDER)
 
     for filename in tqdm(os.listdir(DATASET_FOLDER), desc="Creating graphs for each point and filling the dataframe"):
         
