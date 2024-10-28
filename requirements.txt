@@ -1,0 +1,9 @@
+shapely
+requests
+geopandas
+pandas
+numpy
+pyproj
+matplotlib
+openmeteo_requests
+retry_requests
