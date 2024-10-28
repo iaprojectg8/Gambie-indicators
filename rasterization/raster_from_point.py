@@ -1,4 +1,5 @@
 from utils.imports import *
+from utils.variables import *
 
 
 # --- Matplotlib functions control ---
@@ -487,18 +488,19 @@ def plot_tif_multiband_plotly(output_path, gdf, shapefile_path, score_type, scor
 
 
 def main_epoch_loop():
-    filename_path = "extended_final.csv"
+    filename_path = FINAL_CSV_PATH
     gdf = get_geodataframe(filename_path)
-    shapefile_path = "AOI_Gambia 1/AOI_Gambia.shp"
-    score_type = "temperature"
-    output_path = "score_multiband.tif"
+    shapefile_path = SHAPE_FILE_PATH
+    score_type = input("Enter the name of the score type you want to see: ")
+    masked = int(input("Enter 1 to see the raster delimited by the country shape and 0 else: "))
+    output_path = f"{score_type}_all_periods.tif"
     score_columns = []
     grid_score_list = list()
     tranform_list = list()
     for column in gdf.columns:
         if score_type in column:
             grid_score, tranform = create_raster_from_df(gdf=gdf,score_column=column ,shapefile_path=shapefile_path,
-                                        masked=0, resolution=0.001)
+                                        masked=masked, resolution=0.001)
             grid_score_list.append(grid_score)
             tranform_list.append(tranform)
             score_columns.append(column)
@@ -506,16 +508,7 @@ def main_epoch_loop():
     write_multiband_tif(output_path=output_path, grid_score_list=grid_score_list, transform_list=tranform_list)
     plot_tif_multiband(output_path, gdf, shapefile_path, score_type, score_columns)
 
-
-
-    output_path = "score_raster_loop.tif"
-
 if "__main__":
     main_epoch_loop()
-    # filename_path = "extended_final.csv"
-    # gdf = get_geodataframe(filename_path=filename_path)
-    # plot_data(gdf, "Final_Score_2010_2029")
 
-
-# Pour la suite il va falloir commenter tout ce qui a été fait ici
     

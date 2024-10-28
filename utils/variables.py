@@ -12,6 +12,7 @@ DATASET_FOLDER ="Extended_Gambie_dataset"
 GRAPH_FOLDER = "Extended_Gambie_graphs"
 FINAL_CSV_PATH = "extended_final.csv"
 COORDINATES_FILE = "unique_coords_2.csv"
+SHAPE_FILE_PATH  = "shape_folder_Gambia/AOI_Gambia.shp"
 
 
 PERIODS = [
