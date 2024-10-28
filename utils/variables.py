@@ -11,7 +11,7 @@ SCORE_COLUMNS = ['temperature_score', 'gdd_score', 'precipitation_score', 'soil_
 DATASET_FOLDER ="Extended_Gambie_dataset"    
 GRAPH_FOLDER = "Extended_Gambie_graphs"
 FINAL_CSV_PATH = "extended_final.csv"
-COORDINATES_FILE = "unique_coords_2.csv"
+COORDINATES_FILE = "unique_coords_to_request.csv"
 SHAPE_FILE_PATH  = "shape_folder_Gambia/AOI_Gambia.shp"
 
 
