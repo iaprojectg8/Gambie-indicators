@@ -14,6 +14,7 @@ from pyproj import CRS
 import base64
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
+from matplotlib.backend_bases import MouseEvent
 import openmeteo_requests 
 import time
 import requests_cache
@@ -31,4 +32,5 @@ import contextily as ctx
 from ipywidgets import interactive
 from matplotlib.widgets import Slider
 import plotly.graph_objects as go
+from scipy.spatial import KDTree
 

@@ -3,6 +3,7 @@ from utils.variables import *
 from data_processing.classify import classify_risk_frequency, classify_risk_score
 from data_processing.calculation import *
 
+
 # --- Main functions ---
 def loads_data(filename):
     """

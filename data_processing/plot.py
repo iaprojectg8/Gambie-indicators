@@ -46,6 +46,39 @@ def initialize_figure_and_axes(num_rows, num_cols):
     axes = axes.flatten()
     return fig, axes
 
+
+def make_each_graph_index(columns, axes, df, periods, index):
+    """
+    Function to generate each individual graph.
+
+    Args:
+        columns (list): List of score column names to plot.
+        axes (ndarray): Array of axes for plotting.
+        df (pd.DataFrame): Dataframe containing scores.
+        periods (list): List of periods to plot along the x-axis.
+
+    Returns:
+        Generates the graphs on the given axes.
+    """
+    for score_column, ax in zip(columns, axes):
+       
+        # Filter scores in function of their names and assign colors to the score
+        df_score = df.filter(like=score_column).iloc[index].tolist()
+        score_levels_colors = [classify_score_exposure(score) for score in df_score]
+        score_levels = [level for level, _ in score_levels_colors]
+        colors = [color for _, color in score_levels_colors]
+
+        # Create a bar plot for this score column
+        bars = ax.bar(periods, df_score, color=colors)
+
+        # Put the class label at the center of each bar
+        center_class_labels(bars, ax, score_levels)
+
+        if score_column == "Final_Score":
+            format_final_score_plot(bars, ax, score_column)
+        else : 
+            format_standard_score(ax, score_column)
+
 def make_each_graph(columns, axes, df, periods):
     """
     Function to generate each individual graph.
@@ -63,6 +96,7 @@ def make_each_graph(columns, axes, df, periods):
        
         # Filter scores in function of their names and assign colors to the score
         df_score = df.filter(like=score_column).iloc[0].tolist()
+        print(df_score)
         score_levels_colors = [classify_score_exposure(score) for score in df_score]
         score_levels = [level for level, _ in score_levels_colors]
         colors = [color for _, color in score_levels_colors]

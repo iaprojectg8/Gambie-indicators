@@ -1,8 +1,126 @@
 from utils.imports import *
 from utils.variables import *
+from data_processing.plot import make_each_graph_index, initialize_figure_and_axes, remove_unused_axes
 
 
 # --- Main function that are used in the main script ---
+
+def zoom(event,ax):
+    """
+    Zooms in or out on the plot based on mouse scroll events.
+
+    Args:
+        event: The mouse scroll event.
+        ax: The matplotlib axis to apply the zoom to.
+    """ 
+    # Get the current x and y limits
+    xlim = ax.get_xlim()
+    ylim = ax.get_ylim()
+
+    # Define the zoom factor
+    zoom_factor = 1.2
+
+    # Zoom in
+    if event.button == 'up':
+        scale_factor = 1 / zoom_factor
+    # Zoom out
+    elif event.button == 'down':
+        scale_factor = zoom_factor
+    else:
+        return
+
+    # Compute the new limits based on the zoom factor
+    ax.set_xlim([event.xdata - (event.xdata - xlim[0]) * scale_factor,
+                 event.xdata + (xlim[1] - event.xdata) * scale_factor])
+    ax.set_ylim([event.ydata - (event.ydata - ylim[0]) * scale_factor,
+                 event.ydata + (ylim[1] - event.ydata) * scale_factor])
+
+    # Redraw the plot with new limits
+    plt.draw()
+
+
+def click_on_one_point(event, gdf, ax, fig):
+    """
+    Handles the event of clicking on a point in the plot.
+
+    Args:
+        event: The mouse click event.
+        gdf: The GeoDataFrame containing point data (latitude, longitude).
+        ax: The matplotlib axis containing the plot.
+        fig: The matplotlib figure for updating display.
+    """
+    # Check if the left mouse button was clicked within the plot axes
+    if event.button == 1 and event.inaxes is not None and event.inaxes == ax:
+        clicked_point = (event.xdata, event.ydata)  # Capture click coordinates
+        print("Clicked point", clicked_point)
+        
+        # Create a KDTree for fast nearest-neighbor search based on coordinates
+        tree = KDTree(gdf[['LAT', 'LON']].values)
+        
+        # Find and plot the nearest point to the clicked location
+        nearest_point = find_nearest(tree, gdf, *clicked_point[::-1], ax, fig)
+        print("Real point", nearest_point["LON"], nearest_point["LAT"])
+
+
+def bar_plot_score(columns, index, gdf):
+    """
+    Plots a bar chart showing the score evolution across multiple variables and periods.
+
+    Args:
+        columns: List of column names corresponding to score data.
+        index: Index of the data point to display.
+        gdf: The GeoDataFrame containing score data.
+    """
+    num_rows, num_cols, num_vars = 4, 3, len(columns)
+    periods = [f"{start}-{end}" for (start, end) in PERIODS]
+
+    # Create figure and subplots for score visualization
+    fig1, axes = initialize_figure_and_axes(num_rows, num_cols)
+    
+    # Generate individual bar plots for each score variable at the specified index
+    make_each_graph_index(columns, axes, gdf, periods, index)
+    
+    # Remove any unused subplots and finalize the figure layout
+    fig1 = remove_unused_axes(axes, num_vars, fig1)
+    
+    # Display the figure with a title
+    plt.suptitle('Evolution of Scores Across Variables and Periods', fontsize=16)
+    plt.show(block=False)
+    
+def find_nearest(tree, gdf, lat, lon, ax, fig):
+    """
+    Finds and highlights the nearest point in the GeoDataFrame to a given latitude and longitude.
+
+    Args:
+        tree: KDTree constructed from point coordinates for fast nearest-neighbor lookup.
+        gdf: The GeoDataFrame containing point data and scores.
+        lat: Latitude of the point to find the nearest neighbor to.
+        lon: Longitude of the point to find the nearest neighbor to.
+        ax: The matplotlib axis to mark the nearest point on.
+        fig: The matplotlib figure to update with the nearest point's details.
+
+    Returns:
+        closest_point: The GeoDataFrame row corresponding to the closest point found.
+    """
+    # Query the KDTree for the closest point to the given latitude and longitude
+    _, index = tree.query([lat, lon], k=1)  # Get index of the nearest point
+    closest_point = gdf.iloc[index]  # Retrieve data for the nearest point
+    
+    # Mark the nearest point on the plot with a red 'x'
+    ax.scatter(closest_point["LON"], closest_point["LAT"], marker="x")
+
+    # Add "Final_Score" to columns if not already included
+    columns = SCORE_COLUMNS
+    if "Final_Score" not in columns:
+        columns.append("Final_Score")
+    
+    # Plot a bar chart showing scores for the selected point
+    bar_plot_score(columns, index, gdf)
+    
+    # Redraw the figure to update the plot with new information
+    fig.canvas.draw()
+    
+    return closest_point
 
 def apply_mask(masked, grid_score, shape_gdf, min_lon, max_lat, resolution):
     """
@@ -159,10 +277,18 @@ def plot_tif_multiband(output_path, gdf, shapefile_path, score_type, score_colum
     shape_gdf = gpd.read_file(shapefile_path)
 
     # Create figure and axis
-    fig, ax = plt.subplots()
-    plt.subplots_adjust(bottom=0.25)  # Adjust the bottom for the slider
+    fig, ax = plt.subplots(figsize=(10,5))
 
+    # Manage all the interaction the user can have with the graph 
+    fig.canvas.mpl_connect('button_press_event', lambda event: click_on_one_point(event, gdf, ax, fig))
+    fig.canvas.mpl_connect('scroll_event', lambda  event: zoom(event, ax))
+
+    # This should be the line called to move the map but for the moment I can't make it work
+    # fig.canvas.mpl_connect('button_press_event', lambda event: pan_start_handler(event, ax))
+    # fig.canvas.mpl_connect('motion_notify_event', lambda  event: pan_move_handler(event, ax))
+    # fig.canvas.mpl_connect('button_release_event', lambda  event: pan_end_handler(event, ax))
     # Initial display
+
     current_frame = 0
     # ctx.add_basemap(plt.gca(), crs="EPSG:4326", source=ctx.providers.OpenStreetMap.Mapnik)
     img = ax.imshow(rasters[current_frame], extent=(min_lon, max_lon, min_lat, max_lat), cmap='RdYlGn_r', vmin=global_min, vmax=global_max)
@@ -217,8 +343,11 @@ def main_epoch_loop():
     filename_path = FINAL_CSV_PATH
     gdf = get_geodataframe(filename_path)
     shapefile_path = SHAPE_FILE_PATH
-    score_type = input("Enter the name of the score type you want to see: ")
-    masked = int(input("Enter 1 to see the raster delimited by the country shape and 0 else: "))
+    # Don't forget to reactivate this part for the code to work properly for whatever user.
+    # score_type = input("Enter the name of the score type you want to see: ")
+    # masked = int(input("Enter 1 to see the raster delimited by the country shape and 0 else: "))
+    score_type = "gdd"
+    masked = 0
     output_path = f"{score_type}_all_periods.tif"
     score_columns = []
     grid_score_list = list()
@@ -237,4 +366,6 @@ def main_epoch_loop():
 if "__main__":
     main_epoch_loop()
 
-    
+
+
+## Loeiz veut un export de tous les rasters pour chaque score, avec pour chaque période une bande
