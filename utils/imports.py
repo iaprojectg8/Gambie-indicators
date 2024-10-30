@@ -31,6 +31,5 @@ from rasterio.features import geometry_mask
 import contextily as ctx
 from ipywidgets import interactive
 from matplotlib.widgets import Slider
-import plotly.graph_objects as go
 from scipy.spatial import KDTree
 

@@ -20,19 +20,17 @@ You should install miniconda to not have any problem with the installation as it
 
 If you don't have miniconda install it, and set it up correctly.
 
-1. Create your conda environment
+1. Create your conda environment with the YAML configuration provided
 ```
-conda create --name env_name python=3.12
+conda env create -n new_env_name --file environment.yml
 ```
-2. Acitvate it
+2. Acivate it
 ```
-conda activate env_name
+conda activate new_env_name
 ```
 
-3. Install the needed packages
-```
-conda install --file .\requirements.txt     
-```
+If you are struggling to launch the code maybe you should try to reopen VSCode. It can solve numerous troubles
+
 
 ## Make all the requests
 ```
