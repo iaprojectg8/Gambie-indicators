@@ -22,7 +22,7 @@ If you don't have miniconda install it, and set it up correctly.
 
 1. Create your conda environment with the YAML configuration provided
 ```
-conda env create -n new_env_name --file environment.yml
+conda env create -n new_env_name --file env.yaml
 ```
 2. Acivate it
 ```
