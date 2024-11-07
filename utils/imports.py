@@ -1,6 +1,7 @@
 
 import time
 import os
+from pyproj import CRS
 import pandas as pd 
 from datetime import datetime, date
 import json
@@ -10,7 +11,7 @@ import requests
 import geopandas as gpd
 import tempfile
 import numpy as np
-from pyproj import CRS
+
 import base64
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
