@@ -20,16 +20,49 @@ You should install miniconda to not have any problem with the installation as it
 
 If you don't have miniconda install it, and set it up correctly.
 
-1. Create your conda environment with the YAML configuration provided
+1. Add the conda-forge channel to the conda avaiblable installs repo
 ```
-conda env create -n new_env_name --file env.yaml
+conda config --add channels conda-forge
 ```
-2. Acivate it
+
+2. Create your conda environment with the YAML configuration provided
+```
+conda env create -n new_env_name python=3.12
+```
+
+3. Activate it
 ```
 conda activate new_env_name
 ```
 
-If you are struggling to launch the code maybe you should try to reopen VSCode. It can solve numerous troubles
+
+4. Install GDAL from this new channel
+```
+conda install gdal
+```
+
+5. Install all the other packages with pip
+```
+pip install -r requirements.txt
+```
+
+6. If you get this kind of error :
+
+    <span style="color:red">rasterio.errors.CRSError: The EPSG code is unknown. PROJ: proj_create_from_database: Cannot find proj.db</span>
+
+    Then, it means that your system does not know where to find the corresponding file so you need to help him finding it.
+    In order to do that, you need to find the file proj.db in your conda virtual environnment.
+    This file is always located at the same place. If you built everything like me this file is located in the following folder: 
+
+    <span style="color:green">C:\Users\adm-local\miniconda3\envs\new_env_name\Library\share\proj</span>
+
+    If you built your environnment with a different name, you just need to change the name of it in the path.
+    With this you need to create a new environnement variable named PROJ_DATA with this path.
+    ![Environnment variable manager screenshot](images/env_variable_screen.png)
+
+
+
+If you are struggling to launch the code maybe you should try to reopen VSCode. It can solve numerous troubles.
 
 
 ## Make all the requests

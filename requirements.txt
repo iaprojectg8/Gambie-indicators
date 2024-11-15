@@ -1,0 +1,16 @@
+pyproj
+pandas
+shapely 
+requests
+geopandas 
+numpy
+matplotlib
+openmeteo-requests
+requests-cache
+retry-requests
+tqdm
+rasterio
+scipy
+mpl-interactions
+contextily
+ipywidgets
