@@ -140,7 +140,7 @@ def apply_mask(masked, grid_score, shape_gdf, min_lon, max_lat, resolution):
     grid_score = grid_score[::-1]
     if masked:
         # Create the mask
-        mask = geometry_mask([mapping(shape_gdf.geometry.unary_union)], 
+        mask = geometry_mask([mapping(shape_gdf.geometry.union_all())], 
                             transform=from_origin(min_lon, max_lat, resolution, resolution), 
                             out_shape=grid_score.shape)
         
@@ -331,6 +331,34 @@ def plot_tif_multiband(output_path, gdf, shapefile_path, score_type, score_colum
 
     plt.show()
 
+def get_raster_info(gdf, score_type, shapefile_path, masked):
+    """
+    Extracts raster informations from a GeoDataFrame (gdf) based on a specific score type.
+    
+    Args:
+        gdf (GeoDataFrame): The GeoDataFrame containing the data to be processed.
+        score_type (str): A string to identify relevant score columns in the GeoDataFrame.
+        shapefile_path (str): Path to the shapefile to use for raster creation.
+        masked (bool): Whether to mask the raster data during creation.
+    
+    Returns:
+        tuple: A tuple containing:
+            - grid_score_list (list): A list of raster grids created for the relevant score columns.
+            - transform_list (list): A list of transformation matrices for the created rasters.
+            - score_columns (list): A list of score column names that match the `score_type`.
+    """
+    score_columns = []
+    grid_score_list = list()
+    transform_list = list()
+    for column in gdf.columns:
+        if score_type in column:
+            grid_score, tranform = create_raster_from_df(gdf=gdf,score_column=column ,shapefile_path=shapefile_path,
+                                        masked=masked, resolution=0.001)
+            grid_score_list.append(grid_score)
+            transform_list.append(tranform)
+            score_columns.append(column)
+    return grid_score_list, transform_list, score_columns
+
 def main_epoch_loop():
     """
     Main loop to execute the processing of the geospatial data and visualize the results.
@@ -346,26 +374,39 @@ def main_epoch_loop():
     # Don't forget to reactivate this part for the code to work properly for whatever user.
     # score_type = input("Enter the name of the score type you want to see: ")
     # masked = int(input("Enter 1 to see the raster delimited by the country shape and 0 else: "))
-    score_type = "precipitation"
+    score_type = "ext_precipitation"
     masked = 1
     output_path = f"{score_type}_all_periods.tif"
-    score_columns = []
-    grid_score_list = list()
-    tranform_list = list()
-    for column in gdf.columns:
-        if score_type in column:
-            grid_score, tranform = create_raster_from_df(gdf=gdf,score_column=column ,shapefile_path=shapefile_path,
-                                        masked=masked, resolution=0.001)
-            grid_score_list.append(grid_score)
-            tranform_list.append(tranform)
-            score_columns.append(column)
+    
+    grid_score_list, transform_list, score_columns = get_raster_info(gdf, score_type, shapefile_path, masked)
 
-    write_multiband_tif(output_path=output_path, grid_score_list=grid_score_list, transform_list=tranform_list)
+    write_multiband_tif(output_path=output_path, grid_score_list=grid_score_list, transform_list=transform_list)
     plot_tif_multiband(output_path, gdf, shapefile_path, score_type, score_columns)
 
+def creates_all_rasters():
+    """
+    Creates raster files for all specified score types and saves them as multi-band GeoTIFF files.
+
+    The function checks if the output folder for rasters exists, creates it if not, 
+    and processes the GeoDataFrame to generate and save raster files for each score type.
+    """
+
+    # Creates the raster folder if it does not exist
+    if not os.path.exists(RASTERS_FOLDER):
+        os.makedirs(RASTERS_FOLDER)
+
+    # Initialize gdf and masked value
+    gdf = get_geodataframe(FINAL_CSV_PATH)
+    masked = 1
+
+    # Iterating over score type
+    for score_type in SCORE_COLUMNS:
+        raster_file = f"{score_type}_all_periods.tif"
+        output_path = os.path.join(RASTERS_FOLDER, raster_file)
+        grid_score_list, transform_list, _ = get_raster_info(gdf, score_type, SHAPE_FILE_PATH, masked)
+        write_multiband_tif(output_path=output_path, grid_score_list=grid_score_list, transform_list=transform_list)
+    
+
 if "__main__":
-    main_epoch_loop()
-
-
-
-## Loeiz veut un export de tous les rasters pour chaque score, avec pour chaque période une bande
+    # main_epoch_loop()
+    creates_all_rasters()

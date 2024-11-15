@@ -27,7 +27,7 @@ conda config --add channels conda-forge
 
 2. Create your conda environment with the YAML configuration provided
 ```
-conda env create -n new_env_name python=3.12
+conda create -n new_env_name python=3.12
 ```
 
 3. Activate it
@@ -65,19 +65,26 @@ pip install -r requirements.txt
 If you are struggling to launch the code maybe you should try to reopen VSCode. It can solve numerous troubles.
 
 
-## Make all the requests
+## 1 - Make all the requests
 ```
 python .\data_request\request.py
 ```
+This command allows you to get the whole dataset. Without it, the next command will not produce anything.
 
-## Create all the graph and score
+## 2 - Create all the graph and score CSV file
 
 ```
 python .\main.py
 ```
+This command creates all the score plot from the dataset, and it creates huge CSV file with all the score as well. This CSV file will be necessary for the last part that consists in creating the score rasters for each period.
 
-## Make a raster viz
+## 3 - Make a raster viz
 ```
 python .\rasterization\raster_from_point.py    
 ```
+It creates the score rasters for each period. In order to do this you need to have previously run 1 and 2, otherwise you will not be able to create the rasters.
 Then you will have to give the name of the parameter you want to see and an integer 0 or 1 for the mask.
+
+## Advice
+If this is the first time you are running the code please you need to respect the order of the previous command.
+

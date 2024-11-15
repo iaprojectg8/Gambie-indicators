@@ -207,7 +207,7 @@ def indicator_scores(row):
     # Create indicators using the YEARLY_THRESHOLDS dictionary
     indicator_scores['temperature_score'] = 1 if YEARLY_THRESHOLDS['yearly_min_temp_suitability_threshold'] <= row['temperature_2m_mean'] <= YEARLY_THRESHOLDS['yearly_max_temp_suitability_threshold'] and row['cv_temperature'] < YEARLY_THRESHOLDS['yearly_max_cv_temp_suitability'] else 0
     indicator_scores['gdd_score'] = 1 if YEARLY_THRESHOLDS['yearly_min_gdd_suitability_threshold'] <= row['gdd'] <= YEARLY_THRESHOLDS['yearly_max_gdd_suitability_threshold'] else 0
-    indicator_scores['precipitation_score'] = 1 if YEARLY_THRESHOLDS['yearly_min_prec_suitability_threshold'] <= row['precipitation_sum'] <= YEARLY_THRESHOLDS['yearly_max_prec_suitability_threshold'] and row['cv_precipitation'] < YEARLY_THRESHOLDS['yearly_max_cv_prec_suitability'] else 0
+    indicator_scores['precipitations_score'] = 1 if YEARLY_THRESHOLDS['yearly_min_prec_suitability_threshold'] <= row['precipitation_sum'] <= YEARLY_THRESHOLDS['yearly_max_prec_suitability_threshold'] and row['cv_precipitation'] < YEARLY_THRESHOLDS['yearly_max_cv_prec_suitability'] else 0
     indicator_scores['ext_precipitation_score'] = 1 if row['is_extreme_precipitation'] <= YEARLY_THRESHOLDS['yearly_max_ext_prec_days_threshold'] else 0
     indicator_scores['soil_moisture_score'] = 1 if row['soil_moisture_deficit'] <= YEARLY_THRESHOLDS['yearly_max_soil_moisture_deficit_threshold'] else 0
     indicator_scores['wind_score'] = 1 if row['is_wind_days_above_threshold'] == 0 else 0
