@@ -15,7 +15,7 @@ def filter_growing_season(data):
     Returns:
         DataFrame: Filtered DataFrame for the growing season.
     """
-    return data[(data.index.month >= 5) & (data.index.month <= 10)].copy()
+    return data[(data.index.month >= SEASON_THRESHOLDS['start']) & (data.index.month <= SEASON_THRESHOLDS['end'])].copy()
 
 def add_indicators(data):
     """
@@ -38,7 +38,7 @@ def add_indicators(data):
         is_heat_stress=data['temperature_2m_mean'] > DAILY_THRESHOLDS['daily_heat_stress_threshold'],
         is_wind_above_threshold=data['wind_speed_10m_max'] > DAILY_THRESHOLDS['daily_wind_stress_threshold'],
         is_humidity_above_threshold=data['relative_humidity_2m_mean'] > DAILY_THRESHOLDS['daily_humidity_risk'],
-        is_soil_moisture_above_threshold=data['soil_moisture_0_to_10cm_mean'] > 0.35,
+        soil_moisture_deficit = np.maximum(0, DAILY_THRESHOLDS['daily_soil_moisture_threshold'] - data['soil_moisture_0_to_10cm_mean']),
         solar_radiation_mj=data['shortwave_radiation_sum'] / 1e6  # Convert to MJ/m²
     )
 
@@ -128,7 +128,7 @@ def aggregate_yearly(data_monthly: pd.DataFrame):
 
 def season_indicator(data_daily, data_yearly):
     """
-    Adds season start, end shifts, and length to yearly data.
+    Adds season start shift, and length to yearly data.
     
     Args:
         data_daily (DataFrame): Daily weather data.
@@ -139,12 +139,10 @@ def season_indicator(data_daily, data_yearly):
     """
     # Apply the calculate_season_start and calculate_season_end functions to each year's data
     season_start_shift = data_daily.groupby(data_daily.index.year).apply(lambda df: calculate_season_start(df)).values
-    season_end_shift = data_daily.groupby(data_daily.index.year).apply(lambda df: calculate_season_end(df)).values
     season_length = data_daily.groupby(data_daily.index.year).apply(lambda df: calculate_season_length(df)).values
 
     # Now, assign these shifts to the corresponding year in `data_yearly_growing_season`
     data_yearly['season_start_shift'] = season_start_shift
-    data_yearly['season_end_shift'] = season_end_shift
     data_yearly['season_length'] = season_length
 
     data_yearly = data_yearly.join(data_yearly.apply(indicator_scores, axis=1, result_type='expand'))
@@ -164,33 +162,12 @@ def calculate_season_start(df, threshold=5, consecutive_days=7):
         consecutive_days (int): Number of consecutive days for threshold.
 
     Returns:
-        int: Number of days shifted from the reference start date (May 1).
+        int: Number of days shifted from the reference start date (June 1).
     """
     rolling_sum = df['precipitation_sum'].rolling(window=consecutive_days).sum()
     season_start = df.index[rolling_sum >= threshold].min()
 
-    return (season_start - pd.Timestamp(f'{season_start.year}-05-01', tz=season_start.tz)).days
-
-
-# Define rainy season ending around October (for season end shift)
-def calculate_season_end(df, threshold=2, consecutive_days=7):
-    """
-    Calculate the season end shift based on cumulative precipitation over consecutive days.
-    
-    Args:
-        df (DataFrame): Daily weather data.
-        threshold (int): Cumulative precipitation threshold.
-        consecutive_days (int): Number of consecutive days for threshold.
-
-    Returns:
-        int: Number of days shifted from the reference end date (October 31).
-    """
-    rolling_sum = df['precipitation_sum'].rolling(window=consecutive_days).sum()
-    season_end = df.index[rolling_sum > threshold].max()
-    season_end_date = pd.Timestamp(f'{season_end.year}-10-31', tz=season_end.tz)
-
-    return (season_end_date - season_end).days
-
+    return (season_start - pd.Timestamp(f'{season_start.year}-06-01', tz=season_start.tz)).days
 
 def calculate_season_length(df, threshold_start=2, consecutive_days_start=7, threshold_end=2, consecutive_days_end=7):
     """
@@ -231,7 +208,8 @@ def indicator_scores(row):
     indicator_scores['temperature_score'] = 1 if YEARLY_THRESHOLDS['yearly_min_temp_suitability_threshold'] <= row['temperature_2m_mean'] <= YEARLY_THRESHOLDS['yearly_max_temp_suitability_threshold'] and row['cv_temperature'] < YEARLY_THRESHOLDS['yearly_max_cv_temp_suitability'] else 0
     indicator_scores['gdd_score'] = 1 if YEARLY_THRESHOLDS['yearly_min_gdd_suitability_threshold'] <= row['gdd'] <= YEARLY_THRESHOLDS['yearly_max_gdd_suitability_threshold'] else 0
     indicator_scores['precipitation_score'] = 1 if YEARLY_THRESHOLDS['yearly_min_prec_suitability_threshold'] <= row['precipitation_sum'] <= YEARLY_THRESHOLDS['yearly_max_prec_suitability_threshold'] and row['cv_precipitation'] < YEARLY_THRESHOLDS['yearly_max_cv_prec_suitability'] else 0
-    indicator_scores['soil_moisture_score'] = 1 if YEARLY_THRESHOLDS['yearly_min_soil_moisture_threshold'] <= row['soil_moisture_0_to_10cm_mean'] <= YEARLY_THRESHOLDS['yearly_max_soil_moisture_threshold'] else 0
+    indicator_scores['ext_precipitation_score'] = 1 if row['is_extreme_precipitation'] <= YEARLY_THRESHOLDS['yearly_max_ext_prec_days_threshold'] else 0
+    indicator_scores['soil_moisture_score'] = 1 if row['soil_moisture_deficit'] <= YEARLY_THRESHOLDS['yearly_max_soil_moisture_deficit_threshold'] else 0
     indicator_scores['wind_score'] = 1 if row['is_wind_days_above_threshold'] == 0 else 0
     indicator_scores['heat_stress_score'] = 1 if row['is_heat_days_above_threshold'] == 0 else 0
     indicator_scores['humidity_score'] = 1 if row['is_humidity_days_above_threshold'] == 0 else 0
@@ -239,7 +217,6 @@ def indicator_scores(row):
 
     # Calculate season score
     indicator_scores['season_start_shift_score'] = 1 if row['season_start_shift'] > YEARLY_THRESHOLDS['yearly_max_season_start_shift'] else 0
-    indicator_scores['season_end_shift_score'] = 1 if row['season_end_shift'] > YEARLY_THRESHOLDS['yearly_max_season_end_shift'] else 0
     indicator_scores['season_length_score'] = 1 if row['season_length'] > YEARLY_THRESHOLDS['yearly_min_season_length'] else 0
     
     return indicator_scores

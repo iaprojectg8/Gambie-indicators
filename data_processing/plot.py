@@ -44,6 +44,7 @@ def initialize_figure_and_axes(num_rows, num_cols):
     """
     fig, axes = plt.subplots(num_rows, num_cols, figsize=(15, num_rows * 4), layout="constrained") 
     axes = axes.flatten()
+    print(len(axes))
     return fig, axes
 
 

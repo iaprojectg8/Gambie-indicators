@@ -346,8 +346,8 @@ def main_epoch_loop():
     # Don't forget to reactivate this part for the code to work properly for whatever user.
     # score_type = input("Enter the name of the score type you want to see: ")
     # masked = int(input("Enter 1 to see the raster delimited by the country shape and 0 else: "))
-    score_type = "gdd"
-    masked = 0
+    score_type = "precipitation"
+    masked = 1
     output_path = f"{score_type}_all_periods.tif"
     score_columns = []
     grid_score_list = list()
