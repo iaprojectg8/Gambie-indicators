@@ -44,7 +44,6 @@ def initialize_figure_and_axes(num_rows, num_cols):
     """
     fig, axes = plt.subplots(num_rows, num_cols, figsize=(15, num_rows * 4), layout="constrained") 
     axes = axes.flatten()
-    print(len(axes))
     return fig, axes
 
 
@@ -97,7 +96,6 @@ def make_each_graph(columns, axes, df, periods):
        
         # Filter scores in function of their names and assign colors to the score
         df_score = df.filter(like=score_column).iloc[0].tolist()
-        print(df_score)
         score_levels_colors = [classify_score_exposure(score) for score in df_score]
         score_levels = [level for level, _ in score_levels_colors]
         colors = [color for _, color in score_levels_colors]

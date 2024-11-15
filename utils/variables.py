@@ -3,10 +3,8 @@ VARIABLES_LIST = ["temperature_2m_mean", "temperature_2m_max", "temperature_2m_m
           "relative_humidity_2m_min", "precipitation_sum", "soil_moisture_0_to_10cm_mean"]
 
 SCORE_COLUMNS = ['temperature_score', 'gdd_score', 'precipitations_score', 'ext_precipitation_score', 'soil_moisture_score',
-                    'wind_score', 'heat_stress_score', 'humidity_score', 'season_start_shift_score', 
+                    'wind_score', 'heat_stress_score', 'humidity_score', "solar_radiation_score", 'season_start_shift_score', 
                     'season_length_score']
-
-
 
 DATASET_FOLDER ="Extended_Gambie_dataset"    
 GRAPH_FOLDER = "Extended_Gambie_graphs"
@@ -14,6 +12,8 @@ FINAL_CSV_PATH = "extended_final.csv"
 COORDINATES_FILE = "unique_coords_to_request.csv"
 SHAPE_FILE_PATH  = "shape_folder_Gambia/AOI_Gambia.shp"
 RASTERS_FOLDER = "All_rasters"
+YEARLY_AGG_FOLDER = "CSV_yearly_agg_rand"
+DAILY_AGG_FOLDER = "CSV_daily_agg_rand"
 
 
 PERIODS = [

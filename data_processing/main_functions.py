@@ -73,10 +73,10 @@ def yearly_work(data_daily_growing_season, data_monthly_growing_season):
     Returns:
         DataFrame: Yearly aggregated data with season indicators.
     """
-    data_yearly_growing_season = aggregate_yearly(data_monthly_growing_season)
+    data_yearly_growing_season = df_aggregate_yearly = aggregate_yearly(data_monthly_growing_season)
     data_yearly_growing_season = season_indicator(data_daily=data_daily_growing_season, data_yearly=data_yearly_growing_season)
 
-    return data_yearly_growing_season
+    return data_yearly_growing_season, df_aggregate_yearly
 
 
 def loop_to_process_data_on_periods(data_yearly_growing_season, score_columns):

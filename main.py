@@ -1,9 +1,12 @@
 from data_processing.main_functions import *
 from data_processing.plot import plot_results_from_dataframe
-from utils.variables import DATASET_FOLDER, GRAPH_FOLDER, FINAL_CSV_PATH
+from utils.variables import DATASET_FOLDER, GRAPH_FOLDER, FINAL_CSV_PATH, DAILY_AGG_FOLDER, YEARLY_AGG_FOLDER
 
 
-def process_data(filename):
+
+
+
+def process_data(filename, save_csv:bool):
     """
     Main function to process climate data for a specific location.
 
@@ -16,11 +19,14 @@ def process_data(filename):
     """
     # Loading the data
     data, lat, lon = loads_data(filename)
+    saving_filename = filename.split("\\")[1]
  
     # Making on different time scale
     data_daily_growing_season = daily_work(data)
+    save_agg_csv(save_csv, DAILY_AGG_FOLDER, saving_filename, data_daily_growing_season)
     data_monthly_growing_season = monthly_work(data_daily_growing_season)
-    data_yearly_growing_season = yearly_work(data_daily_growing_season, data_monthly_growing_season)
+    data_yearly_growing_season, df_aggregate_yearly = yearly_work(data_daily_growing_season, data_monthly_growing_season)
+    save_agg_csv(save_csv, YEARLY_AGG_FOLDER, saving_filename, df_aggregate_yearly)
 
     # Looping on periods to calculate risks on them
     risk_df_data = loop_to_process_data_on_periods(data_yearly_growing_season, SCORE_COLUMNS)
@@ -32,6 +38,12 @@ def process_data(filename):
 
     return final_score_df, final_score_columns
 
+
+def save_agg_csv(save_csv, folder, filename, df):
+    if save_csv:
+        path = os.path.join(folder, filename)
+        print(path)
+        df.to_csv(path)
 
 def calculate_score_for_one_point():
     """
@@ -48,17 +60,24 @@ def calculate_score_for_all_points():
     Function to calculate and plot scores for all points in a dataset (multiple locations).
     """
     df = pd.DataFrame()
-    if os.path.isdir(GRAPH_FOLDER):
-        print("The graph folder already exists")
-    else :
+    if not os.path.exists(GRAPH_FOLDER):
         os.makedirs(GRAPH_FOLDER)
+    elif not os.path.exists(YEARLY_AGG_FOLDER):
+        os.makedirs(YEARLY_AGG_FOLDER)
+    elif not os.path.exists(DAILY_AGG_FOLDER):
+        os.makedirs(DAILY_AGG_FOLDER)
 
-    for filename in tqdm(os.listdir(DATASET_FOLDER), desc="Creating graphs for each point and filling the dataframe"):
+    files_list = os.listdir(DATASET_FOLDER)
+    index_to_make_csv_with = np.random.randint(len(files_list), size=10)
+    print(index_to_make_csv_with)
+
+    for index, filename in enumerate(tqdm(files_list, desc="Creating graphs for each point and filling the dataframe"), start=1):
         
+        save_csv = index in index_to_make_csv_with
         filename_graph = filename.split(".")[0]
         graph_path = os.path.join(GRAPH_FOLDER, filename_graph)
         data_path= os.path.join(DATASET_FOLDER, filename)
-        plot_args = process_data(filename=data_path)
+        plot_args = process_data(filename=data_path, save_csv=save_csv)
         plot_results_from_dataframe(*plot_args, graph_path=graph_path)
         new_final_row = pd.DataFrame(plot_args[0])
 
