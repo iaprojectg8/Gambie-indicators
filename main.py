@@ -75,17 +75,21 @@ def calculate_score_for_all_points():
         
         save_csv = index in index_to_make_csv_with
         filename_graph = filename.split(".")[0]
+
         graph_path = os.path.join(GRAPH_FOLDER, filename_graph)
         data_path= os.path.join(DATASET_FOLDER, filename)
         plot_args = process_data(filename=data_path, save_csv=save_csv)
         plot_results_from_dataframe(*plot_args, graph_path=graph_path)
         new_final_row = pd.DataFrame(plot_args[0])
+        new_final_row["filename"] = filename_graph
+        new_final_row.set_index('filename', inplace=True)
+        print(new_final_row)
 
         if df is None : 
             df = new_final_row
         else:
             df = pd.concat([df, new_final_row])
-    df.to_csv(FINAL_CSV_PATH, index=False)
+    df.to_csv(FINAL_CSV_PATH)
 
 
 # calculate_score_for_one_point()
