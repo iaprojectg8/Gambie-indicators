@@ -3,7 +3,7 @@ VARIABLES_LIST = ["temperature_2m_mean", "temperature_2m_max", "temperature_2m_m
           "relative_humidity_2m_min", "precipitation_sum", "soil_moisture_0_to_10cm_mean"]
 
 SCORE_COLUMNS = ['temperature_score', 'gdd_score', 'precipitations_score', 'ext_precipitation_score', 'soil_moisture_score',
-                    'wind_score', 'heat_stress_score', 'humidity_score', "solar_radiation_score", 'season_start_shift_score', 
+                    'wind_score', 'heat_stress_score', 'drought_score', 'humidity_score', "solar_radiation_score", 'season_start_shift_score', 
                     'season_length_score']
 
 DATASET_FOLDER ="Extended_Gambie_dataset"    
@@ -33,16 +33,19 @@ YEARLY_THRESHOLDS = {
     'yearly_min_temp_suitability_threshold': 24,
     'yearly_max_temp_suitability_threshold': 30,
     'yearly_max_cv_temp_suitability': 10,
-    'yearly_min_gdd_suitability_threshold': 1800,
-    'yearly_max_gdd_suitability_threshold': 2800,
+    'yearly_min_gdd_suitability_threshold': 2200,
     'yearly_min_prec_suitability_threshold': 650,
     'yearly_max_prec_suitability_threshold': 1500,
     'yearly_max_ext_prec_days_threshold': 15,
     'yearly_max_cv_prec_suitability': 150,
-    'yearly_max_soil_moisture_deficit_threshold': 6,
+    'yearly_max_soil_moisture_deficit_threshold': 1.5,
     'yearly_min_solar_radiation_suitability_threshold': 450,
-    'yearly_max_season_start_shift': 20,
-    'yearly_min_season_length': 120
+    'yearly_max_season_start_shift': 10,
+    'yearly_min_season_length': 120,
+    'yearly_humidity_stress_threshold': 30,
+    'yearly_dry_days_stress_threshold': 25,
+    'yearly_heat_days_stress_threshold': 15,
+    'yearly_wind_stress_threshold': 10
 }
 
 DAILY_THRESHOLDS = {
@@ -55,13 +58,6 @@ DAILY_THRESHOLDS = {
     'daily_humidity_risk': 90
 }
 
-MONTHLY_THRESHOLDS = {
-    'monthly_wind_stress_threshold': 5,
-    'monthly_heat_stress_threshold': 10,
-    'monthly_humidity_stress_threshold': 10
-}
-
-
 MONTHLY_AGG_FUNCTIONS = {
     'temperature_2m_mean': 'mean',
     'precipitation_sum': 'sum',
@@ -69,10 +65,10 @@ MONTHLY_AGG_FUNCTIONS = {
     'gdd': 'sum',
     'is_extreme_precipitation': 'sum',
     'is_heat_stress': 'sum',
-    'is_humidity_above_threshold': 'sum',
     'is_wind_above_threshold': 'sum',
     'soil_moisture_deficit': 'sum',
-    'consecutive_dry_days': 'max'
+    'consecutive_dry_days': 'max',
+    'is_humidity_above_threshold': 'sum'
 }
 
 YEARLY_AGG_FUNCTIONS = {
@@ -84,9 +80,9 @@ YEARLY_AGG_FUNCTIONS = {
     'cv_temperature': 'mean',
     'cv_precipitation': 'mean',
     'is_extreme_precipitation': 'sum',
-    'is_heat_days_above_threshold': 'sum',
-    'is_humidity_days_above_threshold': 'sum',
-    'is_wind_days_above_threshold': 'sum',
+    'is_heat_stress': 'sum',
+    'is_humidity_above_threshold': 'sum',
+    'is_wind_above_threshold': 'sum',
     'consecutive_dry_days': 'max'
 }
   

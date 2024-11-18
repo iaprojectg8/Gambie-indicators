@@ -68,24 +68,33 @@ def calculate_score_for_all_points():
         os.makedirs(DAILY_AGG_FOLDER)
 
     files_list = os.listdir(DATASET_FOLDER)
-    index_to_make_csv_with = np.random.randint(len(files_list), size=10)
+
+    index_to_make_csv_with = ['cmip6_era5_data_daily_89.csv', 
+                              'cmip6_era5_data_daily_53.csv',
+                              'cmip6_era5_data_daily_194.csv',
+                              'cmip6_era5_data_daily_101.csv'
+                            ]
     print(index_to_make_csv_with)
 
     for index, filename in enumerate(tqdm(files_list, desc="Creating graphs for each point and filling the dataframe"), start=1):
         
-        save_csv = index in index_to_make_csv_with
+        save_csv = filename in index_to_make_csv_with
         filename_graph = filename.split(".")[0]
+
         graph_path = os.path.join(GRAPH_FOLDER, filename_graph)
         data_path= os.path.join(DATASET_FOLDER, filename)
         plot_args = process_data(filename=data_path, save_csv=save_csv)
         plot_results_from_dataframe(*plot_args, graph_path=graph_path)
         new_final_row = pd.DataFrame(plot_args[0])
+        new_final_row["filename"] = filename_graph
+        new_final_row.set_index('filename', inplace=True)
+        print(new_final_row)
 
         if df is None : 
             df = new_final_row
         else:
             df = pd.concat([df, new_final_row])
-    df.to_csv(FINAL_CSV_PATH, index=False)
+    df.to_csv(FINAL_CSV_PATH)
 
 
 # calculate_score_for_one_point()
