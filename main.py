@@ -62,9 +62,9 @@ def calculate_score_for_all_points():
     df = pd.DataFrame()
     if not os.path.exists(GRAPH_FOLDER):
         os.makedirs(GRAPH_FOLDER)
-    elif not os.path.exists(YEARLY_AGG_FOLDER):
+    if not os.path.exists(YEARLY_AGG_FOLDER):
         os.makedirs(YEARLY_AGG_FOLDER)
-    elif not os.path.exists(DAILY_AGG_FOLDER):
+    if not os.path.exists(DAILY_AGG_FOLDER):
         os.makedirs(DAILY_AGG_FOLDER)
 
     files_list = os.listdir(DATASET_FOLDER)
