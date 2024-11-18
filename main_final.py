@@ -2,10 +2,6 @@ from data_processing.main_functions import *
 from data_processing.plot import plot_results_from_dataframe
 from utils.variables import DATASET_FOLDER, GRAPH_FOLDER, FINAL_CSV_PATH, DAILY_AGG_FOLDER, YEARLY_AGG_FOLDER
 
-
-
-
-
 def process_data(filename, save_csv:bool):
     """
     Main function to process climate data for a specific location.
@@ -62,9 +58,9 @@ def calculate_score_for_all_points():
     df = pd.DataFrame()
     if not os.path.exists(GRAPH_FOLDER):
         os.makedirs(GRAPH_FOLDER)
-    elif not os.path.exists(YEARLY_AGG_FOLDER):
+    if not os.path.exists(YEARLY_AGG_FOLDER):
         os.makedirs(YEARLY_AGG_FOLDER)
-    elif not os.path.exists(DAILY_AGG_FOLDER):
+    if not os.path.exists(DAILY_AGG_FOLDER):
         os.makedirs(DAILY_AGG_FOLDER)
 
     files_list = os.listdir(DATASET_FOLDER)
@@ -76,7 +72,7 @@ def calculate_score_for_all_points():
                             ]
     print(index_to_make_csv_with)
 
-    for index, filename in enumerate(tqdm(files_list, desc="Creating graphs for each point and filling the dataframe"), start=1):
+    for filename in enumerate(tqdm(files_list, desc="Creating graphs for each point and filling the dataframe"), start=1):
         
         save_csv = filename in index_to_make_csv_with
         filename_graph = filename.split(".")[0]
