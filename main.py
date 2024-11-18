@@ -72,9 +72,10 @@ def calculate_score_for_all_points():
                             ]
     print(index_to_make_csv_with)
 
-    for filename in enumerate(tqdm(files_list, desc="Creating graphs for each point and filling the dataframe"), start=1):
+    for index, filename in enumerate(tqdm(files_list, desc="Creating graphs for each point and filling the dataframe"), start=1):
         
         save_csv = filename in index_to_make_csv_with
+        print(filename)
         filename_graph = filename.split(".")[0]
 
         graph_path = os.path.join(GRAPH_FOLDER, filename_graph)
