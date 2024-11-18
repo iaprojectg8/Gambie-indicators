@@ -408,5 +408,5 @@ def creates_all_rasters():
     
 
 if "__main__":
-    # main_epoch_loop()
-    creates_all_rasters()
+    main_epoch_loop()
+    #creates_all_rasters()

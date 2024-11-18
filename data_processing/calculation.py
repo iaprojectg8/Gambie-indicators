@@ -31,7 +31,6 @@ def add_indicators(data):
         (data['temperature_2m_max'] + data['temperature_2m_min']) / 2 - DAILY_THRESHOLDS['gdd_base_temp'], 0)
 
     data = data.assign(
-        is_precipitation_above_threshold=data['precipitation_sum'] > DAILY_THRESHOLDS['daily_prec_threshold'],
         is_extreme_precipitation=data['precipitation_sum'] > DAILY_THRESHOLDS['daily_ext_prec_threshold'],
         consecutive_dry_days=(data['precipitation_sum'] < DAILY_THRESHOLDS['daily_dry_day_threshold']).astype(int)
                               .groupby((data['precipitation_sum'] >= DAILY_THRESHOLDS['daily_dry_day_threshold']).cumsum()).cumsum(),
@@ -39,7 +38,7 @@ def add_indicators(data):
         is_wind_above_threshold=data['wind_speed_10m_max'] > DAILY_THRESHOLDS['daily_wind_stress_threshold'],
         is_humidity_above_threshold=data['relative_humidity_2m_mean'] > DAILY_THRESHOLDS['daily_humidity_risk'],
         soil_moisture_deficit = np.maximum(0, DAILY_THRESHOLDS['daily_soil_moisture_threshold'] - data['soil_moisture_0_to_10cm_mean']),
-        solar_radiation_mj=data['shortwave_radiation_sum'] / 1e6  # Convert to MJ/m²
+        solar_radiation_mj=data['shortwave_radiation_sum']
     )
 
     return data
@@ -213,7 +212,7 @@ def indicator_scores(row):
     indicator_scores['wind_score'] = 1 if row['is_wind_days_above_threshold'] == 0 else 0
     indicator_scores['heat_stress_score'] = 1 if row['is_heat_days_above_threshold'] == 0 else 0
     indicator_scores['humidity_score'] = 1 if row['is_humidity_days_above_threshold'] == 0 else 0
-    indicator_scores['solar_radiation_score'] = 1 if YEARLY_THRESHOLDS['yearly_min_solar_radiation_suitability_threshold'] <= row['solar_radiation_mj'] <= YEARLY_THRESHOLDS['yearly_max_solar_radiation_suitability_threshold'] else 0
+    indicator_scores['solar_radiation_score'] = 1 if row['solar_radiation_mj'] >= YEARLY_THRESHOLDS['yearly_min_solar_radiation_suitability_threshold'] else 0
 
     # Calculate season score
     indicator_scores['season_start_shift_score'] = 1 if row['season_start_shift'] > YEARLY_THRESHOLDS['yearly_max_season_start_shift'] else 0
