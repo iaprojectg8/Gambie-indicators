@@ -50,6 +50,24 @@ def calculate_score_for_one_point():
     plot_results_from_dataframe(*plot_args, graph_path=graph_path)
 
 
+def get_point_for_score():
+    df_all_coords= pd.read_csv("unique_coords_to_request.csv")
+    df_score_coords = pd.read_csv("point_to_ask_score_for.csv")
+    df_score_coords.columns = df_score_coords.columns.str.strip()
+    tree = KDTree(df_all_coords[['lat', 'lon']].values)
+    coords_to_ask = []
+    for _,row in df_score_coords.iterrows():
+        lon, lat = row["lon"], row["lat"]
+        _, index = tree.query([lat, lon], k=1)  # Get index of the nearest point
+        closest_point = df_all_coords.iloc[index]  # Retrieve data for the nearest point
+
+        coords_to_ask.append((closest_point["lat"], closest_point["lon"]))
+
+    return coords_to_ask
+
+
+
+
 def calculate_score_for_all_points():
     """
     Function to calculate and plot scores for all points in a dataset (multiple locations).
@@ -69,6 +87,10 @@ def calculate_score_for_all_points():
                               'cmip6_era5_data_daily_194.csv',
                               'cmip6_era5_data_daily_101.csv'
                             ]
+    
+    coords_to_get_score = get_point_for_score()
+    df_final_score = pd.DataFrame()
+
     for index, filename in enumerate(tqdm(files_list, desc="Creating graphs for each point and filling the dataframe"), start=1):
         
         save_csv = filename in index_to_make_csv_with
@@ -77,8 +99,12 @@ def calculate_score_for_all_points():
         graph_path = os.path.join(GRAPH_FOLDER, filename_graph)
         data_path= os.path.join(DATASET_FOLDER, filename)
         plot_args = process_data(filename=data_path, save_csv=save_csv)
-        plot_results_from_dataframe(*plot_args, graph_path=graph_path)
+        # plot_results_from_dataframe(*plot_args, graph_path=graph_path)
         new_final_row = pd.DataFrame(plot_args[0])
+        for  lat, lon in coords_to_get_score:
+            if abs(new_final_row["LAT"].values[0]- lat)<10e-8 and abs(new_final_row["LON"].values[0]- lon)<10e-8:
+                print("in the condition for final score")
+                df_final_score = pd.concat([df_final_score, new_final_row])
         new_final_row["filename"] = filename_graph
         new_final_row.set_index('filename', inplace=True)
 
@@ -87,6 +113,7 @@ def calculate_score_for_all_points():
         else:
             df = pd.concat([df, new_final_row])
     df.to_csv(FINAL_CSV_PATH)
+    df_final_score.to_csv("final_score_wanted.csv")
 
 
 # calculate_score_for_one_point()

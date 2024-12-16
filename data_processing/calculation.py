@@ -166,23 +166,33 @@ def calculate_season_start(df, threshold=5, consecutive_days=7):
 def calculate_season_length(df, threshold_start=2, consecutive_days_start=7, threshold_end=2, consecutive_days_end=7):
     """
     Calculate the season length based on precipitation thresholds.
-    
+
     Args:
-        df (DataFrame): Daily weather data.
-        threshold_start (int): Cumulative precipitation threshold for start.
+        df (DataFrame): Daily weather data with a 'precipitation_sum' column.
+        threshold_start (int): Cumulative precipitation threshold for season start.
         consecutive_days_start (int): Number of consecutive days for season start.
-        threshold_end (int): Cumulative precipitation threshold for end.
+        threshold_end (int): Cumulative precipitation threshold for season end.
         consecutive_days_end (int): Number of consecutive days for season end.
 
     Returns:
-        int: The length of the season in days.
+        int: The length of the season in days. Returns 0 if no season is found.
     """
+    # Rolling sum to identify season start
     rolling_sum_start = df['precipitation_sum'].rolling(window=consecutive_days_start).sum()
     season_start = df.index[rolling_sum_start >= threshold_start].min()
-    if pd.isna(season_start):
-        rolling_sum_end = df['precipitation_sum'].rolling(window=consecutive_days_end).sum()
-        season_end = df.index[rolling_sum_end > threshold_end].max()
-        return np
+    
+    if pd.isna(season_start):  # No valid season start
+        return 0
+
+    # Rolling sum to identify season end
+    rolling_sum_end = df['precipitation_sum'].rolling(window=consecutive_days_end).sum()
+    season_end = df.index[rolling_sum_end > threshold_end].max()
+    
+    if pd.isna(season_end) or season_end <= season_start:  # No valid season end or invalid range
+        return 0
+
+    # Calculate and return season length
+    return (season_end - season_start).days + 1
 
 
 # --- Indicator score calculation ---
