@@ -18,16 +18,16 @@ def process_data(filename, save_csv:bool):
     saving_filename = filename.split("\\")[1]
  
     # Making on different time scale
-    data_daily_growing_season = daily_work(data)
+    data_daily_growing_season, data_yearly_mean_temp = daily_work(data)
     save_agg_csv(save_csv, DAILY_AGG_FOLDER, saving_filename, data_daily_growing_season)
     data_monthly_growing_season = monthly_work(data_daily_growing_season)
-    data_yearly_growing_season, df_aggregate_yearly = yearly_work(data_daily_growing_season, data_monthly_growing_season)
+    data_yearly_growing_season, df_aggregate_yearly = yearly_work(data_daily_growing_season, data_monthly_growing_season, data_yearly_mean_temp)
     save_agg_csv(save_csv, YEARLY_AGG_FOLDER, saving_filename, df_aggregate_yearly)
 
     # Looping on periods to calculate risks on them
     risk_df_data = loop_to_process_data_on_periods(data_yearly_growing_season, SCORE_COLUMNS)
     risk_df, final_score_columns = convert_into_dataframe(risk_df_data)
-
+    data_yearly_growing_season['temperature_2m_mean'] = data_yearly_mean_temp
     # Making a clean table of the different final score
     final_score_df = create_final_score_dataframe(lat,lon, PERIODS, final_score_columns, risk_df)
     final_score_df.to_csv("final_score.csv",index=False)
@@ -38,7 +38,6 @@ def process_data(filename, save_csv:bool):
 def save_agg_csv(save_csv, folder, filename, df):
     if save_csv:
         path = os.path.join(folder, filename)
-        print(path)
         df.to_csv(path)
 
 def calculate_score_for_one_point():
@@ -70,12 +69,9 @@ def calculate_score_for_all_points():
                               'cmip6_era5_data_daily_194.csv',
                               'cmip6_era5_data_daily_101.csv'
                             ]
-    print(index_to_make_csv_with)
-
     for index, filename in enumerate(tqdm(files_list, desc="Creating graphs for each point and filling the dataframe"), start=1):
         
         save_csv = filename in index_to_make_csv_with
-        print(filename)
         filename_graph = filename.split(".")[0]
 
         graph_path = os.path.join(GRAPH_FOLDER, filename_graph)
@@ -85,7 +81,6 @@ def calculate_score_for_all_points():
         new_final_row = pd.DataFrame(plot_args[0])
         new_final_row["filename"] = filename_graph
         new_final_row.set_index('filename', inplace=True)
-        print(new_final_row)
 
         if df is None : 
             df = new_final_row

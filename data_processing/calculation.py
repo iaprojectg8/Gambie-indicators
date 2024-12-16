@@ -29,20 +29,24 @@ def add_indicators(data):
     """
     data.loc[:, 'gdd'] = np.maximum(
         (data['temperature_2m_max'] + data['temperature_2m_min']) / 2 - DAILY_THRESHOLDS['gdd_base_temp'], 0)
-
     data = data.assign(
         is_extreme_precipitation=data['precipitation_sum'] > DAILY_THRESHOLDS['daily_ext_prec_threshold'],
         consecutive_dry_days=(data['precipitation_sum'] < DAILY_THRESHOLDS['daily_dry_day_threshold']).astype(int)
-                              .groupby((data['precipitation_sum'] >= DAILY_THRESHOLDS['daily_dry_day_threshold']).cumsum()).cumsum(),
-        is_heat_stress=data['temperature_2m_mean'] > DAILY_THRESHOLDS['daily_heat_stress_threshold'],
+                            .groupby((data['precipitation_sum'] >= DAILY_THRESHOLDS['daily_dry_day_threshold']).cumsum()).cumsum(),
+        is_heat_stress=np.where(
+                data.index.month > 6,
+                data['temperature_2m_max'] > DAILY_THRESHOLDS['daily_heat_stress_threshold'],
+                False  # Return False for months before June
+            ),
         is_wind_above_threshold=data['wind_speed_10m_max'] > DAILY_THRESHOLDS['daily_wind_stress_threshold'],
         is_humidity_above_threshold=data['relative_humidity_2m_mean'] > DAILY_THRESHOLDS['daily_humidity_risk'],
         soil_moisture_deficit = np.maximum(0, DAILY_THRESHOLDS['daily_soil_moisture_threshold'] - data['soil_moisture_0_to_10cm_mean']),
         solar_radiation_mj=data['shortwave_radiation_sum']
     )
+    datajuloct = data[data.index.month > 6].groupby(data[data.index.month > 6].index.year)['temperature_2m_mean'].mean()
+    return data, datajuloct
 
-    return data
-
+    
 # --- Monthly calculation ---
 
 def aggregate_monthly(data_daily : pd.DataFrame):
@@ -116,7 +120,7 @@ def aggregate_yearly(data_monthly: pd.DataFrame):
     """
     return data_monthly.resample('YE').agg(YEARLY_AGG_FUNCTIONS)
 
-def season_indicator(data_daily, data_yearly):
+def season_indicator(data_daily, data_yearly, data_yearly_mean_temp):
     """
     Adds season start shift, and length to yearly data.
     
@@ -134,7 +138,7 @@ def season_indicator(data_daily, data_yearly):
     # Now, assign these shifts to the corresponding year in `data_yearly_growing_season`
     data_yearly['season_start_shift'] = season_start_shift
     data_yearly['season_length'] = season_length
-
+    data_yearly['temperature_2m_mean'] = data_yearly_mean_temp.values
     data_yearly = data_yearly.join(data_yearly.apply(indicator_scores, axis=1, result_type='expand'))
 
     return data_yearly
@@ -157,7 +161,7 @@ def calculate_season_start(df, threshold=5, consecutive_days=7):
     rolling_sum = df['precipitation_sum'].rolling(window=consecutive_days).sum()
     season_start = df.index[rolling_sum >= threshold].min()
 
-    return np.maximum(0, (season_start - pd.Timestamp(f'{season_start.year}-06-15', tz=season_start.tz)).days)
+    return np.subtract(np.maximum(0, (season_start - pd.Timestamp(f'{season_start.year}-07-01', tz=season_start.tz)).days), 6)
 
 def calculate_season_length(df, threshold_start=2, consecutive_days_start=7, threshold_end=2, consecutive_days_end=7):
     """
@@ -175,9 +179,10 @@ def calculate_season_length(df, threshold_start=2, consecutive_days_start=7, thr
     """
     rolling_sum_start = df['precipitation_sum'].rolling(window=consecutive_days_start).sum()
     season_start = df.index[rolling_sum_start >= threshold_start].min()
-    rolling_sum_end = df['precipitation_sum'].rolling(window=consecutive_days_end).sum()
-    season_end = df.index[rolling_sum_end > threshold_end].max()
-    return (season_end - season_start).days
+    if pd.isna(season_start):
+        rolling_sum_end = df['precipitation_sum'].rolling(window=consecutive_days_end).sum()
+        season_end = df.index[rolling_sum_end > threshold_end].max()
+        return np
 
 
 # --- Indicator score calculation ---
@@ -197,18 +202,18 @@ def indicator_scores(row):
     # Create indicators using the YEARLY_THRESHOLDS dictionary
     indicator_scores['temperature_score'] = 1 if YEARLY_THRESHOLDS['yearly_min_temp_suitability_threshold'] <= row['temperature_2m_mean'] <= YEARLY_THRESHOLDS['yearly_max_temp_suitability_threshold'] and row['cv_temperature'] < YEARLY_THRESHOLDS['yearly_max_cv_temp_suitability'] else 0
     indicator_scores['gdd_score'] = 1 if YEARLY_THRESHOLDS['yearly_min_gdd_suitability_threshold'] <= row['gdd'] else 0
-    indicator_scores['precipitations_score'] = 1 if YEARLY_THRESHOLDS['yearly_min_prec_suitability_threshold'] <= row['precipitation_sum'] <= YEARLY_THRESHOLDS['yearly_max_prec_suitability_threshold'] and row['cv_precipitation'] < YEARLY_THRESHOLDS['yearly_max_cv_prec_suitability'] else 0
+    indicator_scores['precipitations_score'] = 1 if YEARLY_THRESHOLDS['yearly_min_prec_suitability_threshold'] <= row['precipitation_sum'] <= YEARLY_THRESHOLDS['yearly_max_prec_suitability_threshold'] else 0
     indicator_scores['ext_precipitation_score'] = 1 if row['is_extreme_precipitation'] <= YEARLY_THRESHOLDS['yearly_max_ext_prec_days_threshold'] else 0
     indicator_scores['soil_moisture_score'] = 1 if row['soil_moisture_deficit'] <= YEARLY_THRESHOLDS['yearly_max_soil_moisture_deficit_threshold'] else 0
     indicator_scores['wind_score'] = 1 if row['is_wind_above_threshold'] <= YEARLY_THRESHOLDS['yearly_wind_stress_threshold'] else 0
     indicator_scores['heat_stress_score'] = 1 if row['is_heat_stress'] <= YEARLY_THRESHOLDS['yearly_heat_days_stress_threshold'] else 0
-    indicator_scores['humidity_score'] = 1 if row['is_humidity_above_threshold'] >= YEARLY_THRESHOLDS['yearly_humidity_stress_threshold'] else 0
+    indicator_scores['humidity_score'] = 1 if row['is_humidity_above_threshold'] <= YEARLY_THRESHOLDS['yearly_humidity_stress_threshold'] else 0
     indicator_scores['solar_radiation_score'] = 1 if row['solar_radiation_mj'] >= YEARLY_THRESHOLDS['yearly_min_solar_radiation_suitability_threshold'] else 0
-    indicator_scores['drought_score'] = 1 if row['consecutive_dry_days'] >= YEARLY_THRESHOLDS['yearly_dry_days_stress_threshold'] else 0
+    indicator_scores['drought_score'] = 1 if row['consecutive_dry_days'] <= YEARLY_THRESHOLDS['yearly_dry_days_stress_threshold'] else 0
 
     # Calculate season score
-    indicator_scores['season_start_shift_score'] = 1 if row['season_start_shift'] < YEARLY_THRESHOLDS['yearly_max_season_start_shift'] else 0
-    indicator_scores['season_length_score'] = 1 if row['season_length'] > YEARLY_THRESHOLDS['yearly_min_season_length'] else 0
+    indicator_scores['season_start_shift_score'] = 1 if row['season_start_shift'] <= YEARLY_THRESHOLDS['yearly_max_season_start_shift'] else 0
+    indicator_scores['season_length_score'] = 1 if row['season_length'] >= YEARLY_THRESHOLDS['yearly_min_season_length'] else 0
     
     return indicator_scores
 

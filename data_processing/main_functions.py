@@ -41,9 +41,9 @@ def daily_work(data):
         DataFrame: Daily data with growing season and added indicators.
     """
     data_daily_growing_season = filter_growing_season(data)
-    data_daily_growing_season = add_indicators(data_daily_growing_season)
+    data_daily_growing_season, data_yearly_mean_temp = add_indicators(data_daily_growing_season)
 
-    return data_daily_growing_season
+    return data_daily_growing_season, data_yearly_mean_temp
 
 
 def monthly_work(data_daily_growing_season):
@@ -62,7 +62,7 @@ def monthly_work(data_daily_growing_season):
 
     return data_monthly_growing_season
 
-def yearly_work(data_daily_growing_season, data_monthly_growing_season):
+def yearly_work(data_daily_growing_season, data_monthly_growing_season, data_yearly_mean_temp):
     """
     Processes daily and monthly data into yearly aggregations and adds season indicators.
     
@@ -74,7 +74,7 @@ def yearly_work(data_daily_growing_season, data_monthly_growing_season):
         DataFrame: Yearly aggregated data with season indicators.
     """
     data_yearly_growing_season = df_aggregate_yearly = aggregate_yearly(data_monthly_growing_season)
-    data_yearly_growing_season = season_indicator(data_daily=data_daily_growing_season, data_yearly=data_yearly_growing_season)
+    data_yearly_growing_season = season_indicator(data_daily=data_daily_growing_season, data_yearly=data_yearly_growing_season, data_yearly_mean_temp=data_yearly_mean_temp)
 
     return data_yearly_growing_season, df_aggregate_yearly
 

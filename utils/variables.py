@@ -25,7 +25,7 @@ PERIODS = [
     ]
 
 SEASON_THRESHOLDS = {
-    'start': 6,
+    'start': 7,
     'end': 10
 }
 
@@ -34,17 +34,17 @@ YEARLY_THRESHOLDS = {
     'yearly_max_temp_suitability_threshold': 30,
     'yearly_max_cv_temp_suitability': 10,
     'yearly_min_gdd_suitability_threshold': 2200,
-    'yearly_min_prec_suitability_threshold': 650,
+    'yearly_min_prec_suitability_threshold': 600,
     'yearly_max_prec_suitability_threshold': 1500,
     'yearly_max_ext_prec_days_threshold': 15,
     'yearly_max_cv_prec_suitability': 150,
     'yearly_max_soil_moisture_deficit_threshold': 1.5,
     'yearly_min_solar_radiation_suitability_threshold': 450,
-    'yearly_max_season_start_shift': 10,
-    'yearly_min_season_length': 120,
+    'yearly_max_season_start_shift': 15,
+    'yearly_min_season_length': 110,
     'yearly_humidity_stress_threshold': 30,
-    'yearly_dry_days_stress_threshold': 25,
-    'yearly_heat_days_stress_threshold': 15,
+    'yearly_dry_days_stress_threshold': 7,
+    'yearly_heat_days_stress_threshold': 10,
     'yearly_wind_stress_threshold': 10
 }
 
@@ -72,7 +72,6 @@ MONTHLY_AGG_FUNCTIONS = {
 }
 
 YEARLY_AGG_FUNCTIONS = {
-    'temperature_2m_mean': 'mean',
     'precipitation_sum': 'sum',
     'soil_moisture_deficit': 'sum',
     'solar_radiation_mj': 'sum',
